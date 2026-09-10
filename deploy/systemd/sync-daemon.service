@@ -1,0 +1,11 @@
+[Unit]
+Description=Sync Daemon Service
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/sync-daemon
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target

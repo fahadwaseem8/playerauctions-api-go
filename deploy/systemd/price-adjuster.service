@@ -1,0 +1,11 @@
+[Unit]
+Description=Price Adjuster Service
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/price-adjuster
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
