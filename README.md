@@ -72,4 +72,5 @@ Supabase tracks which ones have been applied so re-running `db push` is safe.
 
 | Migration | Description |
 |---|---|
-| `20260912054918_create_offers_table.sql` | Initial `offers` table (title, price, category, game, is_scraped, created_at) |
+| `20260912054918_create_offers_table.sql` | Initial `offers` table (title, price, categories[], game, is_scraped, created_at) |
+| `20260912060501_add_descriptions_table.sql` | `descriptions` table (slug, name, HTML content) + `description_id` FK on `offers` |
