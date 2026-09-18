@@ -29,6 +29,7 @@ type PAOfferPayload struct {
 	Price        float64 `json:"price"`
 	Quantity     int     `json:"quantity"`
 	DeliveryTime string  `json:"deliveryTime"` 
+	Categories   string  `json:"categories"`
 	Description  string  `json:"description"`
 }
 
@@ -87,7 +88,8 @@ func main() {
 			Price:        offer.FinalPrice,
 			Quantity:     offer.FinalQuantity,
 			DeliveryTime: offer.FinalDeliveryTime, 
-			Description:  "Description ID: " + offer.DescriptionID, 
+			Categories:   offer.Categories,
+			Description:  "Description ID: " + offer.DescriptionID,  
 		}
 
 		// Disable HTML escaping so '&' prints normally instead of '\u0026'
