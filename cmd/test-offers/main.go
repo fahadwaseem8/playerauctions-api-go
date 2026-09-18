@@ -1,80 +1,102 @@
 package main
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"time"
+
 	"github.com/joho/godotenv"
 )
 
+// GeneratedOffer represents a row returned from our Supabase view
+type GeneratedOffer struct {
+	ServiceID         int     `json:"service_id"`
+	FinalQuantity     int     `json:"final_quantity"`
+	FinalDeliveryTime string  `json:"final_delivery_time"`
+	GeneratedTitle    string  `json:"generated_title"`
+	FinalPrice        float64 `json:"final_price"`
+	Categories        string  `json:"categories"`
+	DescriptionID     string  `json:"description_id"`
+}
+
+// PAOfferPayload represents the body we send to PlayerAuctions
+type PAOfferPayload struct {
+	Title        string  `json:"title"`
+	Price        float64 `json:"price"`
+	Quantity     int     `json:"quantity"`
+	DeliveryTime string  `json:"deliveryTime"` 
+	Description  string  `json:"description"`
+}
+
 func main() {
-	// Load .env file from the current directory (where go run is executed)
-	_ = godotenv.Load(".env") 
-	
-	// 1. Get credentials from environment (or hardcode for testing)
-	apiKey := os.Getenv("PLAYERAUCTIONS_API_KEY")
-	apiSecret := os.Getenv("PLAYERAUCTIONS_API_SECRET")
+	// Load .env file from the current directory
+	_ = godotenv.Load(".env")
 
-	if apiKey == "" || apiSecret == "" {
-		fmt.Println("Please set PLAYERAUCTIONS_API_KEY and PLAYERAUCTIONS_API_SECRET in your .env file")
+	sbURL := os.Getenv("SUPABASE_URL")
+	sbKey := os.Getenv("SUPABASE_KEY")
+
+	if sbURL == "" || sbKey == "" {
+		fmt.Println("Please set SUPABASE_URL and SUPABASE_KEY in your .env file")
 		return
 	}
 
-	// 2. Prepare the request
-	url := "https://seller-api.playerauctions.com/api/v1/offers"
-	method := "GET"
-	bodyStr := "" // Empty body for GET requests
+	fmt.Println("========================================")
+	fmt.Println("1. Fetching generated offers from Supabase API...")
+	fmt.Println("========================================")
 
-	// 3. Generate Timestamp
-	timestamp := fmt.Sprintf("%d", time.Now().Unix())
+	offersURL := fmt.Sprintf("%s/rest/v1/playerauctions_generated_offers?select=*", sbURL)
+	req, _ := http.NewRequest("GET", offersURL, nil)
+	req.Header.Set("apikey", sbKey)
+	req.Header.Set("Authorization", "Bearer "+sbKey)
 
-	// 4. Generate Signature
-	// The docs usually imply concatenating api_key + timestamp + body
-	// Make sure this matches exactly how PlayerAuctions expects the string to be formed.
-	message := apiKey + timestamp + bodyStr
-	
-	h := hmac.New(sha256.New, []byte(apiSecret))
-	h.Write([]byte(message))
-	signature := hex.EncodeToString(h.Sum(nil))
-
-	fmt.Printf("Timestamp: %s\n", timestamp)
-	fmt.Printf("Message to sign: %s\n", message)
-	fmt.Printf("Signature: %s\n\n", signature)
-
-	// 5. Create HTTP Request
-	req, err := http.NewRequest(method, url, nil)
-	if err != nil {
-		fmt.Printf("Error creating request: %v\n", err)
-		return
-	}
-
-	// 6. Set Headers
-	req.Header.Set("X-PA-API-KEY", apiKey)
-	req.Header.Set("X-PA-TIMESTAMP", timestamp)
-	req.Header.Set("X-PA-SIGN", signature)
-	req.Header.Set("Content-Type", "application/json") // Standard for most APIs
-
-	// 7. Execute Request
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("Error executing request: %v\n", err)
+		fmt.Printf("Error fetching from Supabase: %v\n", err)
 		return
 	}
 	defer resp.Body.Close()
 
-	// 8. Read and Print Response
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Printf("Error reading response: %v\n", err)
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("Supabase returned HTTP %d\n", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		fmt.Println(string(body))
 		return
 	}
 
-	fmt.Printf("Status Code: %d\n", resp.StatusCode)
-	fmt.Printf("Response: %s\n", string(respBody))
+	var generatedOffers []GeneratedOffer
+	if err := json.NewDecoder(resp.Body).Decode(&generatedOffers); err != nil {
+		fmt.Printf("Error decoding Supabase response: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Successfully fetched %d generated offers.\n\n", len(generatedOffers))
+
+	fmt.Println("========================================")
+	fmt.Println("2. Printing Generated Offers Payload...")
+	fmt.Println("========================================")
+
+	for i, offer := range generatedOffers {
+		// Populate payload mapped from our database
+		payload := PAOfferPayload{
+			Title:        offer.GeneratedTitle,
+			Price:        offer.FinalPrice,
+			Quantity:     offer.FinalQuantity,
+			DeliveryTime: offer.FinalDeliveryTime, 
+			Description:  "Description ID: " + offer.DescriptionID, 
+		}
+
+		// Disable HTML escaping so '&' prints normally instead of '\u0026'
+		var buf bytes.Buffer
+		encoder := json.NewEncoder(&buf)
+		encoder.SetIndent("", "  ")
+		encoder.SetEscapeHTML(false)
+		_ = encoder.Encode(payload)
+		
+		fmt.Printf("[%d/%d] JSON Payload for %s:\n%s\n", i+1, len(generatedOffers), offer.GeneratedTitle, buf.String())
+	}
 }
