@@ -1,0 +1,10 @@
+{
+  "gameId": 0,
+  "offerDuration": 30,
+  "totalUnit": 1,
+  "serviceCategories": {
+    "1": {
+      "parentItemId": 0
+    }
+  }
+}
