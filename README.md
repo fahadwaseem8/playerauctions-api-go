@@ -118,9 +118,9 @@ Use `go run . -help` for all options. `-config` selects a different mapping file
 | `supabase/migrations/` | Existing database schema |
 
 No database views, deployment services, background workers, or price adjuster
-are required. The existing schema migration is unchanged. No insert/seed migration
-is present in this checkout; populate services, categories, category links, and
-descriptions to generate offers. For a linked Supabase project, apply schema
+are required. The initial migration creates the final schema and a blank shared
+description. Populate services, categories and category links, then edit the shared
+description to generate offers. For a linked Supabase project, apply schema
 migrations with `supabase db push`.
 
 ## Verification and contract references
@@ -155,11 +155,10 @@ Other contract references:
 - [Creation prevalidation](https://support.playerauctions.com/hc/en-us/articles/58910892947737)
 - [API errors](https://support.playerauctions.com/hc/en-us/articles/58908561192857)
 
-## Delivery days and shared description migration
+## Fresh-project database setup
 
-Run `20261014000000_use_base_delivery_days.sql` once (skip if already applied),
-then `20261014001000_use_shared_offer_description.sql` in Supabase SQL Editor.
-The second migration keeps `general` (or the oldest description), removes other
-descriptions and per-offer description links, and enforces one shared row.
-Edit its `content` to change the description used by every generated offer.
-Regenerate `offers.json` after applying these migrations.
+Apply the single migration `20260918150545_create_pa_services.sql` with
+`supabase db push`. It creates the tables, indexes, policies, update trigger,
+`base_delivery_days`, and the single shared description row directly.
+Edit the `general` row's `content` in `playerauctions_descriptions`, then populate
+services and category links before generating offers.
