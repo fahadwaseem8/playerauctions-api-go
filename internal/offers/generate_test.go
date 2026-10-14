@@ -2,6 +2,7 @@ package offers
 
 import (
 	"encoding/json"
+	"math"
 	"strings"
 	"testing"
 )
@@ -9,14 +10,52 @@ import (
 func fixture(t *testing.T) []Service {
 	t.Helper()
 	var services []Service
-	if err := json.Unmarshal([]byte(`[{"id":1,"base_title":"Raid service","unit_name":"Raids","base_quantity":10,"step_increment":5,"max_steps":3,"base_price":10,"discount_modifier":0.95,"base_delivery_hours":12,"time_scales":true,"playerauctions_service_categories":[{"playerauctions_categories":{"name":"Raids"}}]}]`), &services); err != nil {
+	if err := json.Unmarshal([]byte(`[{"id":1,"base_title":"Raid service","unit_name":"Raids","base_quantity":10,"step_increment":5,"max_steps":3,"base_price":10,"discount_modifier":0.95,"base_delivery_days":0.5,"time_scales":true,"playerauctions_service_categories":[{"playerauctions_categories":{"name":"Raids"}}]}]`), &services); err != nil {
 		t.Fatal(err)
 	}
 	return services
 }
 
+func TestDeliveryDaysAndSharedDescription(t *testing.T) {
+	for _, test := range []struct {
+		days float64
+		want string
+	}{{11, "11 Days"}, {0.125, "3 Hours"}, {1.5, "36 Hours"}, {1.0 / 24, "1 Hours"}} {
+		services := fixture(t)
+		services[0].BaseDeliveryDays = test.days
+		services[0].TimeScales = false
+		other := services[0]
+		other.ID = 2
+		other.UnitName = "Package"
+		other.BaseQuantity = 1
+		other.MaxSteps = 1
+		variants, err := Generate(append(services, other), "Shared HTML")
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, v := range variants {
+			if !strings.HasSuffix(v.Title, test.want) || v.Description != "Shared HTML" {
+				t.Fatalf("days=%v variant=%+v", test.days, v)
+			}
+		}
+		if strings.Contains(variants[len(variants)-1].Title, "1x Package") {
+			t.Fatal(variants)
+		}
+	}
+}
+
+func TestInvalidDeliveryDays(t *testing.T) {
+	for _, days := range []float64{0, -1, math.NaN(), math.Inf(1)} {
+		services := fixture(t)
+		services[0].BaseDeliveryDays = days
+		if _, err := Generate(services, "Shared"); err == nil {
+			t.Fatalf("accepted %v days", days)
+		}
+	}
+}
+
 func TestGenerateAndBuildAPIRequests(t *testing.T) {
-	variants, err := Generate(fixture(t), []Description{{"raids", "<p>Raids & more</p>"}, {"general", "Fallback"}})
+	variants, err := Generate(fixture(t), "<p>Raids & more</p>")
 	if err != nil || len(variants) != 3 {
 		t.Fatalf("variants=%v err=%v", variants, err)
 	}
@@ -42,7 +81,7 @@ func TestFixedDeliveryFallbackAndRounding(t *testing.T) {
 	services[0].TimeScales = false
 	services[0].BasePrice = .29
 	services[0].DiscountModifier = .5
-	variants, err := Generate(services, []Description{{"general", "Fallback"}})
+	variants, err := Generate(services, "Fallback")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +89,7 @@ func TestFixedDeliveryFallbackAndRounding(t *testing.T) {
 		t.Fatal(variants)
 	}
 	services[0].Categories = nil
-	variants, err = Generate(services, nil)
+	variants, err = Generate(services, "")
 	if err != nil || len(variants) != 0 {
 		t.Fatal(variants, err)
 	}

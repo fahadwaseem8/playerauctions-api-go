@@ -58,8 +58,9 @@ Delivery Agreement. Category membership is verified against live metadata only
 in post mode; preview performs local validation.
 
 Each categorized service expands into `max_steps` packages. Quantity, pricing,
-and delivery estimates come from the service settings. Description HTML matches
-the lowercase unit name, falling back to `general`, or an empty description.
+and delivery estimates come from the service settings. `base_delivery_days` accepts
+fractional days (0.125 = 3 hours). Every offer uses the same HTML content from
+the single `general` row in `playerauctions_descriptions`.
 Services without category links are skipped, as in the original view.
 
 The request shape uses `gameId`, `title`, `offerDesc`, `offerDuration`, `agreeCheck`,
@@ -153,3 +154,12 @@ Other contract references:
 - [Boosting categories](https://support.playerauctions.com/hc/en-us/articles/58908718113945)
 - [Creation prevalidation](https://support.playerauctions.com/hc/en-us/articles/58910892947737)
 - [API errors](https://support.playerauctions.com/hc/en-us/articles/58908561192857)
+
+## Delivery days and shared description migration
+
+Run `20261014000000_use_base_delivery_days.sql` once (skip if already applied),
+then `20261014001000_use_shared_offer_description.sql` in Supabase SQL Editor.
+The second migration keeps `general` (or the oldest description), removes other
+descriptions and per-offer description links, and enforces one shared row.
+Edit its `content` to change the description used by every generated offer.
+Regenerate `offers.json` after applying these migrations.

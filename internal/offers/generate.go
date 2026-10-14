@@ -7,26 +7,21 @@ import (
 )
 
 type Service struct {
-	ID                int     `json:"id"`
-	BaseTitle         string  `json:"base_title"`
-	UnitName          string  `json:"unit_name"`
-	BaseQuantity      int     `json:"base_quantity"`
-	StepIncrement     int     `json:"step_increment"`
-	MaxSteps          int     `json:"max_steps"`
-	BasePrice         float64 `json:"base_price"`
-	DiscountModifier  float64 `json:"discount_modifier"`
-	BaseDeliveryHours int     `json:"base_delivery_hours"`
-	TimeScales        bool    `json:"time_scales"`
-	Categories        []struct {
+	ID               int     `json:"id"`
+	BaseTitle        string  `json:"base_title"`
+	UnitName         string  `json:"unit_name"`
+	BaseQuantity     int     `json:"base_quantity"`
+	StepIncrement    int     `json:"step_increment"`
+	MaxSteps         int     `json:"max_steps"`
+	BasePrice        float64 `json:"base_price"`
+	DiscountModifier float64 `json:"discount_modifier"`
+	BaseDeliveryDays float64 `json:"base_delivery_days"`
+	TimeScales       bool    `json:"time_scales"`
+	Categories       []struct {
 		Category struct {
 			Name string `json:"name"`
 		} `json:"playerauctions_categories"`
 	} `json:"playerauctions_service_categories"`
-}
-
-type Description struct {
-	Slug    string `json:"slug"`
-	Content string `json:"content"`
 }
 
 type Variant struct {
@@ -37,36 +32,32 @@ type Variant struct {
 	Description string
 }
 
-func Generate(services []Service, descriptions []Description) ([]Variant, error) {
-	bySlug := make(map[string]string, len(descriptions))
-	for _, description := range descriptions {
-		bySlug[description.Slug] = description.Content
-	}
+func Generate(services []Service, description string) ([]Variant, error) {
 	variants := make([]Variant, 0)
 	for _, service := range services {
 		if len(service.Categories) == 0 {
 			continue
 		}
-		if service.BaseQuantity <= 0 || service.StepIncrement < 0 || service.MaxSteps <= 0 || service.BaseDeliveryHours <= 0 {
-			return nil, fmt.Errorf("service %d has invalid quantity, step count or delivery hours", service.ID)
+		if service.BaseQuantity <= 0 || service.StepIncrement < 0 || service.MaxSteps <= 0 || service.BaseDeliveryDays <= 0 || math.IsNaN(service.BaseDeliveryDays) || math.IsInf(service.BaseDeliveryDays, 0) {
+			return nil, fmt.Errorf("service %d has invalid quantity, step count or delivery days", service.ID)
 		}
 		if service.BasePrice <= 0 || service.DiscountModifier < 0 || math.IsNaN(service.BasePrice) || math.IsInf(service.BasePrice, 0) || math.IsNaN(service.DiscountModifier) || math.IsInf(service.DiscountModifier, 0) {
 			return nil, fmt.Errorf("service %d has invalid pricing", service.ID)
 		}
-		description, ok := bySlug[strings.ToLower(service.UnitName)]
-		if !ok {
-			description = bySlug["general"]
-		}
 		for step := 1; step <= service.MaxSteps; step++ {
 			quantity := service.BaseQuantity + (step-1)*service.StepIncrement
-			hours := service.BaseDeliveryHours
+			hours := service.BaseDeliveryDays * 24
 			if service.TimeScales {
-				hours *= step
+				hours *= float64(step)
 			}
-			// Use days only for whole-day durations; never promise 24h for a 36h service.
-			delivery := fmt.Sprintf("%d Hours", hours)
-			if hours%24 == 0 {
-				delivery = fmt.Sprintf("%d Days", hours/24)
+			// Remove floating-point conversion noise without rounding partial days down.
+			hours = math.Round(hours*1e9) / 1e9
+			if math.IsInf(hours, 0) || hours <= 0 {
+				return nil, fmt.Errorf("service %d has invalid scaled delivery duration", service.ID)
+			}
+			delivery := fmt.Sprintf("%g Hours", hours)
+			if math.Mod(hours, 24) == 0 {
+				delivery = fmt.Sprintf("%g Days", hours/24)
 			}
 			baseCents := math.Round(service.BasePrice * 100)
 			modifier := math.Round(service.DiscountModifier * 100)

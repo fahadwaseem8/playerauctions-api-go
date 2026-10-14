@@ -105,7 +105,7 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 
 type repository interface {
 	Services(context.Context) ([]offers.Service, error)
-	Descriptions(context.Context) ([]offers.Description, error)
+	SharedDescription(context.Context) (string, error)
 }
 
 func prepare(ctx context.Context, db repository, settings offers.Settings, serviceID, limit int, agree bool) ([]offers.PlannedOffer, error) {
@@ -125,11 +125,11 @@ func prepare(ctx context.Context, db repository, settings offers.Settings, servi
 		}
 		services = selected
 	}
-	descriptions, err := db.Descriptions(ctx)
+	description, err := db.SharedDescription(ctx)
 	if err != nil {
 		return nil, err
 	}
-	variants, err := offers.Generate(services, descriptions)
+	variants, err := offers.Generate(services, description)
 	if err != nil {
 		return nil, err
 	}

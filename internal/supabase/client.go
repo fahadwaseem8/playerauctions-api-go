@@ -38,8 +38,18 @@ func (c *Client) Services(ctx context.Context) ([]offers.Service, error) {
 	return fetchRows[offers.Service](ctx, c, "playerauctions_services", "*,playerauctions_service_categories(playerauctions_categories(name))", "id")
 }
 
-func (c *Client) Descriptions(ctx context.Context) ([]offers.Description, error) {
-	return fetchRows[offers.Description](ctx, c, "playerauctions_descriptions", "slug,content", "slug")
+// SharedDescription reads the singleton description used by every generated offer.
+func (c *Client) SharedDescription(ctx context.Context) (string, error) {
+	rows, err := fetchRows[struct {
+		Content string `json:"content"`
+	}](ctx, c, "playerauctions_descriptions", "content", "id")
+	if err != nil {
+		return "", err
+	}
+	if len(rows) != 1 {
+		return "", fmt.Errorf("expected one shared description, found %d; apply the shared-description migration", len(rows))
+	}
+	return rows[0].Content, nil
 }
 
 // Keep fetching until an empty page, even when a server cap is below 1000 rows.

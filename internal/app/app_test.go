@@ -29,9 +29,9 @@ func TestPreviewRunsWithoutPlayerAuctionsCredentials(t *testing.T) {
 		}
 		switch r.URL.Path {
 		case "/rest/v1/playerauctions_services":
-			fmt.Fprint(w, `[{"id":1,"base_title":"Raid","unit_name":"Raids","base_quantity":10,"step_increment":10,"max_steps":2,"base_price":5,"discount_modifier":1,"base_delivery_hours":24,"time_scales":false,"playerauctions_service_categories":[{"playerauctions_categories":{"name":"Raids"}}]}]`)
+			fmt.Fprint(w, `[{"id":1,"base_title":"Raid","unit_name":"Raids","base_quantity":10,"step_increment":10,"max_steps":2,"base_price":5,"discount_modifier":1,"base_delivery_days":1,"time_scales":false,"playerauctions_service_categories":[{"playerauctions_categories":{"name":"Raids"}}]}]`)
 		case "/rest/v1/playerauctions_descriptions":
-			fmt.Fprint(w, `[{"slug":"general","content":"<p>Test & description</p>"}]`)
+			fmt.Fprint(w, `[{"content":"<p>Test & description</p>"}]`)
 		default:
 			t.Errorf("unexpected endpoint %s", r.URL.Path)
 		}

@@ -42,6 +42,40 @@ func TestServerCappedPagination(t *testing.T) {
 	}
 }
 
+func TestSharedDescription(t *testing.T) {
+	for _, test := range []struct {
+		body      string
+		wantError bool
+	}{
+		{`[{"content":"Shared HTML"}]`, false},
+		{`[]`, true},
+		{`[{"content":"one"},{"content":"two"}]`, true},
+	} {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != "/rest/v1/playerauctions_descriptions" || r.URL.Query().Get("select") != "content" {
+				t.Error("unexpected query")
+			}
+			if r.URL.Query().Get("offset") != "0" {
+				fmt.Fprint(w, `[]`)
+				return
+			}
+			fmt.Fprint(w, test.body)
+		}))
+		client, err := NewClient(server.URL, "test-key")
+		if err != nil {
+			t.Fatal(err)
+		}
+		content, err := client.SharedDescription(context.Background())
+		server.Close()
+		if (err != nil) != test.wantError {
+			t.Fatalf("content=%q err=%v", content, err)
+		}
+		if !test.wantError && content != "Shared HTML" {
+			t.Fatal(content)
+		}
+	}
+}
+
 func TestFetchFailures(t *testing.T) {
 	for _, test := range []struct {
 		status int
@@ -52,7 +86,7 @@ func TestFetchFailures(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, err = client.Descriptions(context.Background())
+		_, err = client.SharedDescription(context.Background())
 		server.Close()
 		if err == nil {
 			t.Fatal("expected error")
