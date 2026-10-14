@@ -32,6 +32,9 @@ offers.config.json
 offers.json
 posted-offers.jsonl
 
+# Local service setup script
+/local-services.sql
+
 # Editor/IDE
 # .idea/
 # .vscode/
