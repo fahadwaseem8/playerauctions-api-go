@@ -1,76 +1,43 @@
-# PlayerAuctions API - Go
+# PlayerAuctions offer preview
 
-A Go-based background service and price-adjuster for integrating with the PlayerAuctions API.
+A single Go program that reads Supabase services, categories, and descriptions,
+generates offer variants at runtime, and prints JSON payloads. It does not create
+database views or post offers to PlayerAuctions. The payload format is a preview;
+live API posting is not implemented yet.
 
----
+## Run
 
-## Getting Started
-
-1. Copy `.env.example` to `.env` and fill in your credentials.
-2. You can generate a new API key from the [PlayerAuctions API Key Management page](https://member.playerauctions.com/account/api-key-management).
-3. The official documentation for the PlayerAuctions API can be found [here](https://support.playerauctions.com/hc/en-us/articles/41423203201945).
-
----
-
-## Environment Variables
-
-| Variable | Purpose |
-|---|---|
-| `SUPABASE_URL` | Your project's REST API URL (from Supabase dashboard → Project Settings → API) |
-| `SUPABASE_KEY` | `service_role` secret key — used by the Go worker to read/write data |
-| `PLAYERAUCTIONS_API_KEY` | PlayerAuctions seller API key |
-| `PLAYERAUCTIONS_API_SECRET` | PlayerAuctions HMAC signing secret |
-
-> **Note:** `SUPABASE_URL` and `SUPABASE_KEY` are needed by the **Go app at runtime**.
-> `supabase link` (used by the CLI for migrations) is a separate thing — it authenticates
-> via your Supabase account token and does **not** replace these env vars.
-
----
-
-## Database — Supabase Migrations
-
-### Prerequisites
+Copy `.env.example` to `.env` and set your Supabase project URL and service-role key.
+With the Go version specified in `go.mod` installed, run:
 
 ```powershell
-npm install -g supabase
+go run .
 ```
 
-### First-time setup (already done)
+JSON goes to stdout and the preview count goes to stderr. To save the payloads:
 
 ```powershell
-supabase init           # creates supabase/ folder
-supabase login          # authenticates via browser
-supabase link           # links CLI to your remote Supabase project
+go run . > offers.json
 ```
 
-### Applying existing migrations to a fresh project
+`main.go` expands each categorized service into `max_steps` offers using its
+quantity increment, price modifier, and delivery settings. Descriptions match the
+lowercase unit name, falling back to the `general` description. If neither exists,
+the description is empty. An empty database produces an empty JSON array.
+
+## Migrations
+
+`supabase/migrations/20260918150545_create_pa_services.sql` creates the tables,
+indexes, triggers, and access policies. No insert/seed migration is currently
+present in this checkout. Service, category, category-link, and description rows
+must exist to generate populated previews.
+
+For a linked Supabase project, apply migrations with:
 
 ```powershell
 supabase db push
 ```
 
-This runs all migration files in `supabase/migrations/` that haven't been applied yet.
-
-### Adding a new migration
-
-```powershell
-# 1. Create a new timestamped migration file
-supabase migration new <description>
-# e.g. supabase migration new add_status_to_offers
-# → creates: supabase/migrations/YYYYMMDDHHMMSS_add_status_to_offers.sql
-
-# 2. Edit the generated file with your SQL changes
-
-# 3. Push to remote
-supabase db push
-```
-
-### Migration files
-
-All migrations live in `supabase/migrations/` and are run in timestamp order.
-Supabase tracks which ones have been applied so re-running `db push` is safe.
-
-| Migration | Description |
-|---|---|
-| `20260912054918_create_offers_table.sql` | Initial `offers` table (title, price, categories[], game, is_scraped, created_at) |
-| `20260912060501_add_descriptions_table.sql` | `descriptions` table (slug, name, HTML content) + `description_id` FK on `offers` |
+The former generated-offers view migration has been removed. Existing databases
+are not changed by this repository cleanup; the program no longer uses that view.
+No deployment services, background workers, or price adjuster are included.
