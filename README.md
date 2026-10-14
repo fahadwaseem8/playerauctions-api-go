@@ -25,7 +25,7 @@ Copy `offers.config.example.json` to `offers.config.json`, then fill in:
 
 - `gameId`: the PlayerAuctions game ID. The example's `0` is an invalid placeholder.
 - `offerDuration`: listing lifetime in days: `3`, `7`, `14`, or `30`.
-- `totalUnit`: available stock of each package; defaults to `1` in the example.
+- `totalUnit`: available stock of each package; defaults to `10` in the example.
 - `serviceCategories`: keys are your **Supabase service IDs**. Each entry supplies
   a PlayerAuctions `parentItemId` and, when applicable, an integer `itemId`.
   Omit `itemId` for a category without children. These IDs are different from
@@ -41,6 +41,15 @@ go run .
 go run . -service-id 1 -limit 2
 go run . > offers.json
 ```
+
+Convert the preview to `title | price | category` lines (overwrites `offers.txt`):
+
+```powershell
+go run ./cmd/offers-to-txt
+```
+
+Use `-input offers.json -output converted-offers.txt` to choose different files.
+The converter preserves one line per JSON offer and uses Pokemon GO category names.
 
 Preview fetches Supabase data and prints an array of API request bodies to stdout.
 Progress and diagnostics go to stderr. It makes no PlayerAuctions requests.

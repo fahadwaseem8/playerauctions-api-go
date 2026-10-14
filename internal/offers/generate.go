@@ -71,9 +71,14 @@ func Generate(services []Service, descriptions []Description) ([]Variant, error)
 			baseCents := math.Round(service.BasePrice * 100)
 			modifier := math.Round(service.DiscountModifier * 100)
 			priceCents := baseCents * (100 + float64(step-1)*modifier) / 100
+			title := service.BaseTitle
+			if quantity != 1 || !strings.EqualFold(strings.TrimSpace(service.UnitName), "Package") {
+				title += fmt.Sprintf(" - %dx %s", quantity, service.UnitName)
+			}
+			title += " - " + delivery
 			variants = append(variants, Variant{
 				ServiceID: service.ID, Quantity: quantity,
-				Title: fmt.Sprintf("%s - %dx %s - %s", service.BaseTitle, quantity, service.UnitName, delivery),
+				Title: title,
 				Price: math.Round(priceCents) / 100, Description: description,
 			})
 		}

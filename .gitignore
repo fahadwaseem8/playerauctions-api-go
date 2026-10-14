@@ -35,6 +35,12 @@ posted-offers.jsonl
 # Local service setup script
 /local-services.sql
 
+# Raw offers txt file
+offers.txt
+
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Local offers database seed
+/seed-offers.sql
