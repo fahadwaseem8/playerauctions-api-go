@@ -29,7 +29,7 @@ func TestPreviewRunsWithoutPlayerAuctionsCredentials(t *testing.T) {
 		}
 		switch r.URL.Path {
 		case "/rest/v1/playerauctions_services":
-			fmt.Fprint(w, `[{"id":1,"base_title":"Raid","unit_name":"Raids","base_quantity":10,"step_increment":10,"max_steps":2,"base_price":5,"discount_modifier":1,"base_delivery_days":1,"time_scales":false,"playerauctions_service_categories":[{"playerauctions_categories":{"name":"Raids"}}]}]`)
+			fmt.Fprint(w, `[{"id":"11111111-1111-4111-8111-111111111111","base_title":"Raid","unit_name":"Raids","base_quantity":10,"step_increment":10,"max_steps":2,"base_price":5,"discount_modifier":1,"base_delivery_days":1,"time_scales":false,"playerauctions_service_categories":[{"playerauctions_categories":{"name":"Raids"}}]}]`)
 		case "/rest/v1/playerauctions_descriptions":
 			fmt.Fprint(w, `[{"content":"<p>Test & description</p>"}]`)
 		default:
@@ -42,11 +42,11 @@ func TestPreviewRunsWithoutPlayerAuctionsCredentials(t *testing.T) {
 	t.Setenv("PLAYERAUCTIONS_API_KEY", "")
 	t.Setenv("PLAYERAUCTIONS_API_SECRET", "")
 	path := filepath.Join(t.TempDir(), "offers.json")
-	if err := os.WriteFile(path, []byte(`{"gameId":123,"offerDuration":30,"totalUnit":1,"serviceCategories":{"1":{"parentItemId":516}}}`), 0600); err != nil {
+	if err := os.WriteFile(path, []byte(`{"gameId":123,"offerDuration":30,"totalUnit":1,"serviceCategories":{"11111111-1111-4111-8111-111111111111":{"parentItemId":516}}}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 	var stdout, stderr bytes.Buffer
-	err := Run(context.Background(), []string{"-config", path, "-limit", "1"}, &stdout, &stderr)
+	err := Run(context.Background(), []string{"-config", path, "-service-id", "11111111-1111-4111-8111-111111111111", "-limit", "1"}, &stdout, &stderr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +89,7 @@ func (s *fakeSeller) CreateBoostingOffer(_ context.Context, r playerauctions.Cre
 
 func batch() []offers.PlannedOffer {
 	request := playerauctions.CreateBoostingRequest{GameID: 123, Title: "Test", OfferDuration: 30, AgreeCheck: true, Price: 5, TotalUnit: 1, ParentItemID: 516}
-	return []offers.PlannedOffer{{ServiceID: 1, Quantity: 10, Payload: request}, {ServiceID: 1, Quantity: 20, Payload: request}, {ServiceID: 1, Quantity: 30, Payload: request}}
+	return []offers.PlannedOffer{{ServiceID: "11111111-1111-4111-8111-111111111111", Quantity: 10, Payload: request}, {ServiceID: "11111111-1111-4111-8111-111111111111", Quantity: 20, Payload: request}, {ServiceID: "11111111-1111-4111-8111-111111111111", Quantity: 30, Payload: request}}
 }
 
 func TestPostingPacingAndStopOnFailure(t *testing.T) {
@@ -109,10 +109,14 @@ func TestPostingPacingAndStopOnFailure(t *testing.T) {
 			t.Fatal(waits)
 		}
 		var result struct {
-			OfferID int64 `json:"offerId"`
+			OfferID   int64  `json:"offerId"`
+			ServiceID string `json:"serviceId"`
 		}
 		if err := json.Unmarshal(stdout.Bytes(), &result); err != nil || result.OfferID != 101 {
 			t.Fatalf("result=%s err=%v", stdout.String(), err)
+		}
+		if result.ServiceID != "11111111-1111-4111-8111-111111111111" {
+			t.Fatal(result)
 		}
 	}
 }
@@ -153,7 +157,7 @@ func TestCancellationStopsRemainingPosts(t *testing.T) {
 }
 
 func TestCLIRejectsUnsafeOrInvalidArguments(t *testing.T) {
-	for _, args := range [][]string{{"-mode", "post"}, {"-mode", "unknown"}, {"-mode", "categories"}, {"-limit", "-1"}, {"unexpected"}} {
+	for _, args := range [][]string{{"-mode", "post"}, {"-mode", "unknown"}, {"-mode", "categories"}, {"-limit", "-1"}, {"-service-id", "1"}, {"-service-id", "invalid"}, {"unexpected"}} {
 		var output bytes.Buffer
 		if err := Run(context.Background(), args, &output, &output); err == nil {
 			t.Fatalf("accepted %v", args)

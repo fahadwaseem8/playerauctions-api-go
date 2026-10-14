@@ -10,7 +10,7 @@ import (
 func fixture(t *testing.T) []Service {
 	t.Helper()
 	var services []Service
-	if err := json.Unmarshal([]byte(`[{"id":1,"base_title":"Raid service","unit_name":"Raids","base_quantity":10,"step_increment":5,"max_steps":3,"base_price":10,"discount_modifier":0.95,"base_delivery_days":0.5,"time_scales":true,"playerauctions_service_categories":[{"playerauctions_categories":{"name":"Raids"}}]}]`), &services); err != nil {
+	if err := json.Unmarshal([]byte(`[{"id":"11111111-1111-4111-8111-111111111111","base_title":"Raid service","unit_name":"Raids","base_quantity":10,"step_increment":5,"max_steps":3,"base_price":10,"discount_modifier":0.95,"base_delivery_days":0.5,"time_scales":true,"playerauctions_service_categories":[{"playerauctions_categories":{"name":"Raids"}}]}]`), &services); err != nil {
 		t.Fatal(err)
 	}
 	return services
@@ -25,7 +25,7 @@ func TestDeliveryDaysAndSharedDescription(t *testing.T) {
 		services[0].BaseDeliveryDays = test.days
 		services[0].TimeScales = false
 		other := services[0]
-		other.ID = 2
+		other.ID = "22222222-2222-4222-8222-222222222222"
 		other.UnitName = "Package"
 		other.BaseQuantity = 1
 		other.MaxSteps = 1
@@ -62,7 +62,7 @@ func TestGenerateAndBuildAPIRequests(t *testing.T) {
 	if variants[1].Quantity != 15 || variants[1].Price != 19.5 || variants[2].Price != 29 || !strings.HasSuffix(variants[2].Title, "36 Hours") {
 		t.Fatal(variants)
 	}
-	settings := Settings{GameID: 123, OfferDuration: 30, TotalUnit: 1, ServiceCategories: map[int]CategoryMapping{1: {ParentItemID: 516}}}
+	settings := Settings{GameID: 123, OfferDuration: 30, TotalUnit: 1, ServiceCategories: map[string]CategoryMapping{"11111111-1111-4111-8111-111111111111": {ParentItemID: 516}}}
 	plan, err := Build(variants, settings, false)
 	if err != nil {
 		t.Fatal(err)
@@ -70,7 +70,7 @@ func TestGenerateAndBuildAPIRequests(t *testing.T) {
 	if plan[2].Payload.TotalUnit != 1 || plan[2].Payload.AgreeCheck || plan[2].Payload.OfferDesc != "<p>Raids & more</p>" {
 		t.Fatal(plan[2])
 	}
-	delete(settings.ServiceCategories, 1)
+	delete(settings.ServiceCategories, "11111111-1111-4111-8111-111111111111")
 	if _, err := Build(variants, settings, true); err == nil {
 		t.Fatal("missing mapping accepted")
 	}

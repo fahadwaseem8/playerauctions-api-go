@@ -54,13 +54,13 @@ create policy "Allow service role all access on descriptions"
 
 -- Create Categories
 CREATE TABLE public.playerauctions_categories (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) UNIQUE NOT NULL
 );
 
 -- Create Services (Now with Dynamic Time)
 CREATE TABLE public.playerauctions_services (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     base_title TEXT NOT NULL,           
     unit_name VARCHAR(50) NOT NULL,     
     base_quantity INT NOT NULL,         
@@ -74,8 +74,8 @@ CREATE TABLE public.playerauctions_services (
 
 -- Create Junction Table
 CREATE TABLE public.playerauctions_service_categories (
-    service_id INT REFERENCES public.playerauctions_services(id) ON DELETE CASCADE,
-    category_id INT REFERENCES public.playerauctions_categories(id) ON DELETE CASCADE,
+    service_id UUID REFERENCES public.playerauctions_services(id) ON DELETE CASCADE,
+    category_id UUID REFERENCES public.playerauctions_categories(id) ON DELETE CASCADE,
     PRIMARY KEY (service_id, category_id)
 );
 
@@ -117,12 +117,12 @@ comment on column public.playerauctions_descriptions.updated_at    is 'UTC times
 
 -- Comments for playerauctions_categories
 comment on table  public.playerauctions_categories               is 'Categories for classifying PlayerAuctions services';
-comment on column public.playerauctions_categories.id            is 'Auto-incrementing primary key';
+comment on column public.playerauctions_categories.id            is 'UUID primary key';
 comment on column public.playerauctions_categories.name          is 'Unique name of the category';
 
 -- Comments for playerauctions_services
 comment on table  public.playerauctions_services                 is 'Configurable base services for generating dynamic PlayerAuctions listings';
-comment on column public.playerauctions_services.id              is 'Auto-incrementing primary key';
+comment on column public.playerauctions_services.id              is 'UUID primary key';
 comment on column public.playerauctions_services.base_title      is 'The base title template for the service';
 comment on column public.playerauctions_services.unit_name       is 'The unit type being sold, e.g., Raids, Catches, KM, Days';
 comment on column public.playerauctions_services.base_quantity   is 'The starting quantity at step 1';

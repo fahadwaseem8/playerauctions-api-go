@@ -20,10 +20,10 @@ func TestServerCappedPagination(t *testing.T) {
 		}
 		switch r.URL.Query().Get("offset") {
 		case "0":
-			fmt.Fprint(w, `[{"id":1}]`)
+			fmt.Fprint(w, `[{"id":"11111111-1111-4111-8111-111111111111"}]`)
 		case "1":
 			w.WriteHeader(206)
-			fmt.Fprint(w, `[{"id":2}]`)
+			fmt.Fprint(w, `[{"id":"22222222-2222-4222-8222-222222222222"}]`)
 		case "2":
 			fmt.Fprint(w, `[]`)
 		default:

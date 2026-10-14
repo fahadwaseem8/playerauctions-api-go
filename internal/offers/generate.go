@@ -7,7 +7,7 @@ import (
 )
 
 type Service struct {
-	ID               int     `json:"id"`
+	ID               string  `json:"id"`
 	BaseTitle        string  `json:"base_title"`
 	UnitName         string  `json:"unit_name"`
 	BaseQuantity     int     `json:"base_quantity"`
@@ -25,7 +25,7 @@ type Service struct {
 }
 
 type Variant struct {
-	ServiceID   int
+	ServiceID   string
 	Quantity    int
 	Title       string
 	Price       float64
@@ -39,10 +39,10 @@ func Generate(services []Service, description string) ([]Variant, error) {
 			continue
 		}
 		if service.BaseQuantity <= 0 || service.StepIncrement < 0 || service.MaxSteps <= 0 || service.BaseDeliveryDays <= 0 || math.IsNaN(service.BaseDeliveryDays) || math.IsInf(service.BaseDeliveryDays, 0) {
-			return nil, fmt.Errorf("service %d has invalid quantity, step count or delivery days", service.ID)
+			return nil, fmt.Errorf("service %s has invalid quantity, step count or delivery days", service.ID)
 		}
 		if service.BasePrice <= 0 || service.DiscountModifier < 0 || math.IsNaN(service.BasePrice) || math.IsInf(service.BasePrice, 0) || math.IsNaN(service.DiscountModifier) || math.IsInf(service.DiscountModifier, 0) {
-			return nil, fmt.Errorf("service %d has invalid pricing", service.ID)
+			return nil, fmt.Errorf("service %s has invalid pricing", service.ID)
 		}
 		for step := 1; step <= service.MaxSteps; step++ {
 			quantity := service.BaseQuantity + (step-1)*service.StepIncrement
@@ -53,7 +53,7 @@ func Generate(services []Service, description string) ([]Variant, error) {
 			// Remove floating-point conversion noise without rounding partial days down.
 			hours = math.Round(hours*1e9) / 1e9
 			if math.IsInf(hours, 0) || hours <= 0 {
-				return nil, fmt.Errorf("service %d has invalid scaled delivery duration", service.ID)
+				return nil, fmt.Errorf("service %s has invalid scaled delivery duration", service.ID)
 			}
 			delivery := fmt.Sprintf("%g Hours", hours)
 			if math.Mod(hours, 24) == 0 {

@@ -26,7 +26,7 @@ func publish(ctx context.Context, seller sellerAPI, plan []offers.PlannedOffer, 
 	// Validate the entire batch before the first write.
 	for _, offer := range plan {
 		if err := offer.Payload.Validate(true); err != nil {
-			return fmt.Errorf("service %d: %w", offer.ServiceID, err)
+			return fmt.Errorf("service %s: %w", offer.ServiceID, err)
 		}
 	}
 	eligibility, err := seller.PrevalidateCreation(ctx)
@@ -60,11 +60,11 @@ func publish(ctx context.Context, seller sellerAPI, plan []offers.PlannedOffer, 
 		}
 		created, err := seller.CreateBoostingOffer(ctx, offer.Payload)
 		if err != nil {
-			return fmt.Errorf("stopped after %d successful creations at service %d, package quantity %d: %w; check your listings before retrying (the last request may have succeeded)", i, offer.ServiceID, offer.Quantity, err)
+			return fmt.Errorf("stopped after %d successful creations at service %s, package quantity %d: %w; check your listings before retrying (the last request may have succeeded)", i, offer.ServiceID, offer.Quantity, err)
 		}
 		result := struct {
-			ServiceID int `json:"serviceId"`
-			Quantity  int `json:"packageQuantity"`
+			ServiceID string `json:"serviceId"`
+			Quantity  int    `json:"packageQuantity"`
 			playerauctions.CreatedOffer
 		}{offer.ServiceID, offer.Quantity, created}
 		if err := encoder.Encode(result); err != nil {
@@ -99,7 +99,7 @@ func validateMetadata(ctx context.Context, seller sellerAPI, plan []offers.Plann
 			byGame[payload.GameID] = categories
 		}
 		if err := playerauctions.CheckCategory(categories, payload.ParentItemID, payload.ItemID); err != nil {
-			return fmt.Errorf("service %d: %w", offer.ServiceID, err)
+			return fmt.Errorf("service %s: %w", offer.ServiceID, err)
 		}
 	}
 	return nil

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/fahadwaseem8/playerauctions-api-go/internal/offers"
 	"github.com/joho/godotenv"
@@ -50,5 +51,17 @@ func LoadOffers(path string) (offers.Settings, error) {
 	default:
 		return settings, fmt.Errorf("config offerDuration must be 3, 7, 14 or 30")
 	}
+	normalized := make(map[string]offers.CategoryMapping, len(settings.ServiceCategories))
+	for id, category := range settings.ServiceCategories {
+		if !offers.ValidUUID(id) {
+			return settings, fmt.Errorf("serviceCategories key %q must be a Supabase service UUID", id)
+		}
+		key := strings.ToLower(id)
+		if _, exists := normalized[key]; exists {
+			return settings, fmt.Errorf("duplicate service UUID %q", id)
+		}
+		normalized[key] = category
+	}
+	settings.ServiceCategories = normalized
 	return settings, nil
 }

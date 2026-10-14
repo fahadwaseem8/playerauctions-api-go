@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/fahadwaseem8/playerauctions-api-go/internal/config"
 	"github.com/fahadwaseem8/playerauctions-api-go/internal/offers"
@@ -20,7 +21,7 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	mode := flags.String("mode", "preview", "preview, post, games, categories, or prevalidate")
 	configPath := flags.String("config", "offers.config.json", "offer settings and per-service category IDs")
 	gameID := flags.Int("game-id", 0, "game ID for categories mode")
-	serviceID := flags.Int("service-id", 0, "generate only this Supabase service (0 means all)")
+	serviceID := flags.String("service-id", "", "generate only this Supabase service UUID (omitted means all)")
 	limit := flags.Int("limit", 0, "maximum generated offers (0 means all)")
 	agree := flags.Bool("agree", false, "accept the PlayerAuctions Secure Seller Delivery Agreement; required to post")
 	if err := flags.Parse(args); err != nil {
@@ -32,9 +33,13 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	if flags.NArg() != 0 {
 		return fmt.Errorf("unexpected arguments: %v; use -help", flags.Args())
 	}
-	if *limit < 0 || *serviceID < 0 {
-		return fmt.Errorf("limit and service-id cannot be negative")
+	if *limit < 0 {
+		return fmt.Errorf("limit cannot be negative")
 	}
+	if *serviceID != "" && !offers.ValidUUID(*serviceID) {
+		return fmt.Errorf("service-id must be a UUID")
+	}
+	*serviceID = strings.ToLower(*serviceID)
 	switch *mode {
 	case "preview", "post", "games", "categories", "prevalidate":
 	default:
@@ -108,12 +113,12 @@ type repository interface {
 	SharedDescription(context.Context) (string, error)
 }
 
-func prepare(ctx context.Context, db repository, settings offers.Settings, serviceID, limit int, agree bool) ([]offers.PlannedOffer, error) {
+func prepare(ctx context.Context, db repository, settings offers.Settings, serviceID string, limit int, agree bool) ([]offers.PlannedOffer, error) {
 	services, err := db.Services(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if serviceID > 0 {
+	if serviceID != "" {
 		selected := make([]offers.Service, 0, 1)
 		for _, service := range services {
 			if service.ID == serviceID {
@@ -121,7 +126,7 @@ func prepare(ctx context.Context, db repository, settings offers.Settings, servi
 			}
 		}
 		if len(selected) == 0 {
-			return nil, fmt.Errorf("service %d not found", serviceID)
+			return nil, fmt.Errorf("service %s not found", serviceID)
 		}
 		services = selected
 	}

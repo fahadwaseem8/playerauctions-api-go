@@ -26,19 +26,19 @@ Copy `offers.config.example.json` to `offers.config.json`, then fill in:
 - `gameId`: the PlayerAuctions game ID. The example's `0` is an invalid placeholder.
 - `offerDuration`: listing lifetime in days: `3`, `7`, `14`, or `30`.
 - `totalUnit`: available stock of each package; defaults to `10` in the example.
-- `serviceCategories`: keys are your **Supabase service IDs**. Each entry supplies
+- `serviceCategories`: keys are your **Supabase service UUIDs**. Each entry supplies
   a PlayerAuctions `parentItemId` and, when applicable, an integer `itemId`.
   Omit `itemId` for a category without children. These IDs are different from
   Supabase category IDs. Add a mapping for each service you intend to generate.
 
-The example maps service `1`; replace it with your own service IDs and real
+The example maps a placeholder service UUID; replace it with your own service IDs and real
 category IDs. `offers.config.json` is local configuration and is ignored by Git.
 
 ## Preview
 
 ```powershell
 go run .
-go run . -service-id 1 -limit 2
+go run . -service-id 11111111-1111-4111-8111-111111111111 -limit 2
 go run . > offers.json
 ```
 
@@ -76,8 +76,8 @@ Check account eligibility, review the preview, and then explicitly post:
 
 ```powershell
 go run . -mode prevalidate
-go run . -service-id 1 -limit 1 -agree
-go run . -mode post -service-id 1 -limit 1 -agree
+go run . -service-id 11111111-1111-4111-8111-111111111111 -limit 1 -agree
+go run . -mode post -service-id 11111111-1111-4111-8111-111111111111 -limit 1 -agree
 ```
 
 `-agree` means you accept PlayerAuctions' Secure Seller Delivery Agreement.
@@ -167,3 +167,7 @@ The app generates listings from services; there is no persistent offers table.
 For an existing database that still has the unused table, run
 `supabase/manual/drop_unused_offers.sql` once in SQL Editor. This deletes that
 table and its saved listings; services and generated JSON are unaffected.
+
+Services and categories use UUID primary keys. PlayerAuctions game/category IDs
+remain numeric. The local seed assigns stable service UUIDs matching the local
+config; use the UUID in `serviceCategories` and `-service-id`.
