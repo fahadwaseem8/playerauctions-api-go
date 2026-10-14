@@ -162,3 +162,8 @@ Apply the single migration `20260918150545_create_pa_services.sql` with
 `base_delivery_days`, and the single shared description row directly.
 Edit the `general` row's `content` in `playerauctions_descriptions`, then populate
 services and category links before generating offers.
+
+The app generates listings from services; there is no persistent offers table.
+For an existing database that still has the unused table, run
+`supabase/manual/drop_unused_offers.sql` once in SQL Editor. This deletes that
+table and its saved listings; services and generated JSON are unaffected.

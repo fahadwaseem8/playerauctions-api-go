@@ -1,6 +1,6 @@
 -- =============================================================
 -- PlayerAuctions Automation Suite — Initial Schema Setup
--- Fresh-project schema: shared description, delivery days, offers and categories.
+-- Fresh-project schema: shared description, delivery days, services and categories.
 -- Apply once to a new Supabase project.
 
 BEGIN;
@@ -49,41 +49,7 @@ create policy "Allow service role all access on descriptions"
     with check (true);
 
 -- =============================================================
--- 2. Offers Table (playerauctions_offers)
--- =============================================================
-create table if not exists public.playerauctions_offers (
-    id          uuid primary key default gen_random_uuid(),
-    title       text           not null,
-    price       numeric(10, 2) not null check (price >= 0),
-    categories  text[]         not null default '{}',
-    game        text           not null default 'Pokemon Go',
-    is_scraped  boolean        not null default false,
-    created_at  timestamptz    not null default now()
-);
-
-create index if not exists playerauctions_offers_game_idx on public.playerauctions_offers (game);
-create index if not exists playerauctions_offers_created_at_idx on public.playerauctions_offers (created_at desc);
-create index if not exists playerauctions_offers_categories_idx on public.playerauctions_offers using gin (categories);
-
--- Enable Row Level Security
-alter table public.playerauctions_offers enable row level security;
-
-create policy "Allow authenticated reads on offers"
-    on public.playerauctions_offers
-    for select
-    to authenticated
-    using (true);
-
-create policy "Allow service role all access on offers"
-    on public.playerauctions_offers
-    for all
-    to service_role
-    using (true)
-    with check (true);
-
-
--- =============================================================
--- 3. PlayerAuctions Services & Categories
+-- 2. PlayerAuctions Services & Categories
 -- =============================================================
 
 -- Create Categories
@@ -114,7 +80,7 @@ CREATE TABLE public.playerauctions_service_categories (
 );
 
 -- =============================================================
--- 3.5 Enable RLS for Services & Categories
+-- 2.5 Enable RLS for Services & Categories
 -- =============================================================
 alter table public.playerauctions_categories enable row level security;
 alter table public.playerauctions_services enable row level security;
@@ -137,7 +103,7 @@ create policy "Allow service role all access on service_categories"
 
 
 -- =============================================================
--- 4. Comments for All Tables
+-- 3. Comments for All Tables
 -- =============================================================
 
 -- Comments for playerauctions_descriptions
@@ -148,16 +114,6 @@ comment on column public.playerauctions_descriptions.name          is 'Human-rea
 comment on column public.playerauctions_descriptions.content       is 'HTML content of the description';
 comment on column public.playerauctions_descriptions.created_at    is 'UTC timestamp when the row was inserted';
 comment on column public.playerauctions_descriptions.updated_at    is 'UTC timestamp of last update (auto-managed)';
-
--- Comments for playerauctions_offers
-comment on table  public.playerauctions_offers               is 'Offers from PlayerAuctions — some scraped automatically, some added manually';
-comment on column public.playerauctions_offers.id            is 'UUID primary key';
-comment on column public.playerauctions_offers.title         is 'Offer listing title';
-comment on column public.playerauctions_offers.price         is 'Offer price in USD';
-comment on column public.playerauctions_offers.categories    is 'Array of categories this offer appears under (e.g. {"Levelling","Pokemon Catching"})';
-comment on column public.playerauctions_offers.game          is 'Game the offer belongs to — defaults to Pokemon Go';
-comment on column public.playerauctions_offers.is_scraped    is 'True if the offer was pulled automatically from the PA API; false if added manually';
-comment on column public.playerauctions_offers.created_at    is 'UTC timestamp when the row was inserted';
 
 -- Comments for playerauctions_categories
 comment on table  public.playerauctions_categories               is 'Categories for classifying PlayerAuctions services';
